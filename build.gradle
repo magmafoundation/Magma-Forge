@@ -416,6 +416,74 @@ project(':forge') {
     if (changelog.exists())
         extraTxts += changelog
 
+    def runGit = { List<String> args ->
+        def safeArgs = args.collect { it.toString() }
+        def proc = new ProcessBuilder(safeArgs)
+                .directory(rootProject.rootDir)
+                .redirectErrorStream(true)
+                .start()
+        def out = proc.inputStream.getText('UTF-8')
+        def code = proc.waitFor()
+        if (code != 0) {
+            throw new GradleException("Git command failed (${safeArgs.join(' ')}): ${out}")
+        }
+        return out.trim()
+    }
+
+    def changelogVersionForCommit = { String rev ->
+        def desc = runGit(['git', 'describe', '--tags', '--long', '--always', rev])
+        def matcher = (desc =~ /^(.*)-(\d+)-g([0-9a-f]+)$/)
+        if (matcher.matches()) {
+            def tag = matcher.group(1)
+            def offset = matcher.group(2) as int
+            return offset == 0 ? tag : "${tag}.${offset}"
+        }
+        return desc
+    }
+
+    task createChangelog {
+        outputs.file(changelog)
+        doLast {
+            def startRevision = (project.findProperty('changelogStart') ?: System.getenv('CHANGELOG_START') ?: '').toString().trim()
+            if (startRevision.isEmpty()) {
+                startRevision = runGit(['git', 'rev-list', '--max-parents=0', 'HEAD']).readLines().first()
+            }
+
+            def parentLine = runGit(['git', 'show', '-s', '--pretty=%P', startRevision])
+            def args = ['git', 'rev-list', 'HEAD']
+            if (!parentLine.isEmpty()) {
+                parentLine.split(/\s+/).findAll { !it.isEmpty() }.each { parent ->
+                    args.add("^${parent}")
+                }
+            }
+
+            def commits = runGit(args).readLines()
+            def builder = new StringBuilder()
+            commits.each { commitHash ->
+                def version = changelogVersionForCommit(commitHash)
+                def message = runGit(['git', 'show', '-s', '--format=%B', commitHash])
+                def normalized = message.endsWith('\n') ? message : message + '\n'
+
+                builder.append(" - `${version}` ")
+                if (normalized.indexOf('\n') == normalized.lastIndexOf('\n')) {
+                    builder.append(normalized)
+                } else {
+                    def first = true
+                    normalized.split(/\n/).each { line ->
+                        if (!first) {
+                            builder.append('   ')
+                        }
+                        first = false
+                        builder.append(line).append('\n')
+                    }
+                }
+            }
+
+            changelog.parentFile.mkdirs()
+            changelog.text = builder.toString()
+        }
+    }
+
     // We apply the bin patches we just created to make a jar that is JUST our changes
     genClientBinPatches.tool = BINPATCH_TOOL
     task applyClientBinPatches(type: ApplyBinPatches, dependsOn: genClientBinPatches) {
@@ -714,6 +782,8 @@ project(':forge') {
     task outputJar(dependsOn: universalJar) {
     }
 
+    outputJar.dependsOn(createChangelog)
+
     universalJar {
         archiveClassifier = 'server'
         archiveExtension = 'jar'
@@ -915,6 +985,11 @@ project(':forge') {
         publications {
             mavenJava(MavenPublication) {
                 artifact file("build/libs/magma-${MAGMA_VERSION}-server.jar").canonicalPath
+                artifact(changelog) {
+                    builtBy(createChangelog)
+                    classifier = 'changelog'
+                    extension = 'txt'
+                }
 
                 pom {
                     name = 'magma'
