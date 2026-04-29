@@ -15,8 +15,9 @@ jobs:
     with:
       java: 8
       pre_gradle_tasks: setup
-      gradle_tasks: build publish
+      gradle_tasks: outputJar publish
       version_labels: -beta, -stable
+      set_project_version: true
 
     # We only publish the main repository. This way we avoid publishing Kits
     if: ${{ github.repository == 'magmafoundation/Magma-Forge' }}
