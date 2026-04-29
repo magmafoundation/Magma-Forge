@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     # Keep release publishing restricted to the canonical repository.
-    if: ${{ github.repository == 'magmafoundation/Magma' }}
+    if: ${{ github.repository == 'magmafoundation/Magma-Forge' }}
 
     steps:
       - name: Checkout repository
