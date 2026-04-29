@@ -3,194 +3,27 @@ name: Release
 on:
   push:
     branches:
-      - master
       - '1.*'
-  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
   statuses: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    uses: neoforged/actions/.github/workflows/gradle-publish.yml@main
+    with:
+      java: 8
+      pre_gradle_tasks: setup
+      gradle_tasks: publish
+      version_labels: -beta, -stable
 
-    # Keep release publishing restricted to the canonical repository.
+    # We only publish the main repository. This way we avoid publishing Kits
     if: ${{ github.repository == 'magmafoundation/Magma-Forge' }}
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Setup JDK 8
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 8
-
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: false
-
-      - name: Compute release metadata
-        run: |
-          # Compute version based on git tags and offset (like NeoForge)
-          LAST_TAG=$(git tag --sort=-creatordate --merged HEAD | head -n 1)
-          if [ -z "$LAST_TAG" ]; then
-            LAST_TAG="0.0.0"
-          fi
-          
-          COMMIT_COUNT=$(git rev-list --count HEAD)
-          COMMIT_OFFSET=$(git rev-list --count "${LAST_TAG}..HEAD" 2>/dev/null || echo "0")
-          SHORT_SHA=${GITHUB_SHA::8}
-          
-          # Version format: 1.12.2-<offset>-<short-sha>
-          MAGMA_VERSION="1.12.2-${COMMIT_OFFSET}-${SHORT_SHA}"
-          
-          echo "SHORT_SHA=${SHORT_SHA}" >> "$GITHUB_ENV"
-          echo "MAGMA_VERSION=${MAGMA_VERSION}" >> "$GITHUB_ENV"
-          echo "PACKAGE_URL=https://repo.magmafoundation.org/releases/org/magmafoundation/magma-forge/${MAGMA_VERSION}/magma-forge-${MAGMA_VERSION}.jar" >> "$GITHUB_ENV"
-          echo "RELEASE_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${SHORT_SHA}" >> "$GITHUB_ENV"
-          
-          # Export for Gradle
-          echo "ORG_GRADLE_PROJECT_version=${MAGMA_VERSION}" >> "$GITHUB_ENV"
-
-      - name: Send Discord start notification
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          STATUS: started
-        run: |
-          python3 <<'PY' > discord.json
-          import json
-          import os
-
-          payload = {
-              "embeds": [
-                  {
-                      "title": "magma-forge release started",
-                      "color": 16776960,
-                      "fields": [
-                          {"name": "Version", "value": os.environ["MAGMA_VERSION"], "inline": True},
-                          {"name": "Branch", "value": os.environ["GITHUB_REF_NAME"], "inline": True},
-                          {"name": "Run", "value": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}", "inline": False},
-                      ],
-                  }
-              ]
-          }
-
-          print(json.dumps(payload))
-          PY
-          curl -fsSL -H "Content-Type: application/json" -d @discord.json "$DISCORD_WEBHOOK"
-
-      - name: Setup with Gradle
-        run: ./gradlew setup
-
-      - name: Generate changelog
-        run: |
-          PREVIOUS_TAG=$(git tag --sort=-creatordate | head -n 1)
-
-          {
-            echo "# magma-forge ${MAGMA_VERSION}"
-            echo
-            echo "Published package: ${PACKAGE_URL}"
-            echo
-            if [ -n "${PREVIOUS_TAG}" ]; then
-              echo "Changes since ${PREVIOUS_TAG}:"
-              echo
-              git log --pretty=format:'- %s (%h)' "${PREVIOUS_TAG}..HEAD"
-              echo
-              echo
-              echo "Compare: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${PREVIOUS_TAG}...${GITHUB_SHA}"
-            else
-              echo "Changes:"
-              echo
-              git log --pretty=format:'- %s (%h)' -n 20 HEAD
-            fi
-          } > release-notes.md
-
-      - name: Publish with Gradle
-        env:
-          MAVEN_USER: ${{ secrets.MAVEN_USER }}
-          MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
-        run: ./gradlew publish
-
-      - name: Build release jar
-        run: ./gradlew :forge:outputJar
-
-      - name: Verify published package URL
-        run: |
-          PKG_URL="${PACKAGE_URL}"
-          echo "Checking: ${PKG_URL}"
-
-          for i in 1 2 3 4 5; do
-            if curl -fsSIL "${PKG_URL}" >/dev/null; then
-              echo "Package is reachable"
-              exit 0
-            fi
-            echo "Package not reachable yet (attempt ${i}/5), retrying in 10s..."
-            sleep 10
-          done
-
-          echo "Package URL is not reachable after retries"
-          exit 1
-
-      - name: Create GitHub release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.SHORT_SHA }}
-          name: magma-forge ${{ env.MAGMA_VERSION }}
-          files: |
-            build/libs/magma-forge-${{ env.MAGMA_VERSION }}-server.jar
-          body_path: release-notes.md
-
-      - name: Send Discord end notification
-        if: ${{ always() }}
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-          JOB_STATUS: ${{ job.status }}
-        run: |
-          python3 <<'PY' > discord.json
-          import json
-          import os
-
-          status = os.environ["JOB_STATUS"]
-          color = {
-              "success": 3066993,
-              "failure": 15158332,
-              "cancelled": 9807270,
-          }.get(status, 16776960)
-
-          fields = [
-              {"name": "Version", "value": os.environ["MAGMA_VERSION"], "inline": True},
-              {"name": "Status", "value": status, "inline": True},
-              {"name": "Branch", "value": os.environ["GITHUB_REF_NAME"], "inline": True},
-              {"name": "Package", "value": os.environ["PACKAGE_URL"], "inline": False},
-              {"name": "Run", "value": f"{os.environ['GITHUB_SERVER_URL']}/{os.environ['GITHUB_REPOSITORY']}/actions/runs/{os.environ['GITHUB_RUN_ID']}", "inline": False},
-          ]
-
-          if status == "success":
-              fields.insert(4, {"name": "Release", "value": os.environ["RELEASE_URL"], "inline": False})
-
-          payload = {
-              "embeds": [
-                  {
-                      "title": "magma-forge release finished",
-                      "color": color,
-                      "fields": fields,
-                  }
-              ]
-          }
-
-          print(json.dumps(payload))
-          PY
-          curl -fsSL -H "Content-Type: application/json" -d @discord.json "$DISCORD_WEBHOOK"
-
-
-
-
-
-
-
+    secrets:
+      DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+      MAVEN_USER: ${{ secrets.MAVEN_USER }}
+      MAVEN_PASSWORD: ${{ secrets.MAVEN_PASSWORD }}
+      GPG_SUBKEY: ${{ secrets.GPG_SUBKEY }}
+      GPG_SUBKEY_ID: ${{ secrets.GPG_SUBKEY_ID }}
+      GPG_SUBKEY_PASSWORD: ${{ secrets.GPG_SUBKEY_PASSWORD }}
