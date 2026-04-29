@@ -35,18 +35,11 @@ If you want to use Magma in a BungeeCord network, we recommend to use [Waterfall
 
 In order to use Magma with BungeeCord, you have to enable `forge-support` in the BungeeCord config, set `online-mode` to false in server.properties and `bungeecord` to true in spigot.yml.
 
-## 🧪 Magma for 1.16+
-
-Magma for Minecraft 1.16 and above can be found in their own repositories. 
-
-- Click [here](https://git.magmafoundation.org/magmafoundation/Magma-1-16-x) to visit the 1.16 repository.
-- Click [here](https://git.magmafoundation.org/magmafoundation/Magma-1-18-x) to visit the 1.18 repository.
-
 ## 🪣 Deployment
 
 ### Installation
 
-1. Download the recommended builds from the [**Releases** section](https://git.magmafoundation.org/magmafoundation/Magma/releases)
+1. Download the recommended builds from the [**Releases** section](https://github.com/magmafoundation/Magma-Forge/releases)
 2. Make a new directory(folder) for the server
 3. Move the jar that you downloaded into the new directory
 4. Run the jar with your command prompt or terminal, going to your directory and entering `java -jar Magma-[version]-server.jar`. Change [version] to your Magma version number.
@@ -55,7 +48,7 @@ Magma for Minecraft 1.16 and above can be found in their own repositories.
 
 - Clone the Project
   - You can use Git GUI (like GitHub Desktop/GitKraken) or clone using the terminal using:
-    - `git clone https://git.magmafoundation.org/magmafoundation/Magma`
+    - `git clone https://github.com/magmafoundation/Magma-Forge`
   - Next, clone the submodules using:
     - `git submodule update --init --recursive`
 - Building
@@ -69,7 +62,7 @@ Magma for Minecraft 1.16 and above can be found in their own repositories.
 
 - Clone the Project
   - You can use Git GUI (like GitHub Desktop/GitKraken) or clone using the terminal using:
-    - `git clone https://git.magmafoundation.org/magmafoundation/Magma`
+    - `git clone https://github.com/magmafoundation/Magma-Forge`
   - Next, clone the submodules using:
     - `git submodule update --init --recursive`
 - Building Jar
@@ -84,18 +77,10 @@ Magma for Minecraft 1.16 and above can be found in their own repositories.
 
 If you wish to inspect Magma, submit PRs, or otherwise work with Magma itself, you're in the right place!
 
-Please read the [CONTRIBUTING.md](https://git.magmafoundation.org/magmafoundation/Magma/CONTRIBUTING.md) to see how to contribute, setup, and run.
+Please read the [CONTRIBUTING.md](https://github.com/magmafoundation/Magma-Forge/CONTRIBUTING.md) to see how to contribute, setup, and run.
 
 ## 💬 Chat
 
 You are welcome to visit Magma's Discord server [here](https://discord.gg/Magma) (recommended).
 
 You could also go to Magma's subreddit [here](https://www.reddit.com/r/Magma).
-
-## 👥 Partners
-<a href="https://craftycontrol.com/"><img src="https://i.imgur.com/243oDOX.png" width="100" height="100"></a>
-
-### YourKit
-![YourKit-Logo](https://www.yourkit.com/images/yklogo.png)
-
-[YourKit](http://www.yourkit.com/), makers of the outstanding java profiler, support open source projects of all kinds with their full featured [Java](https://www.yourkit.com/java/profiler/index.jsp) and [.NET](https://www.yourkit.com/.net/profiler/index.jsp) application profilers.

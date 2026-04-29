@@ -1,7 +1,7 @@
 buildscript {
     repositories {
         mavenLocal()
-        maven { url = 'https://nexus.c0d3m4513r.com/repository/Magma/' }
+        maven { url = 'https://repo.magmafoundation.org/releases/' }
         maven { url = 'https://maven.minecraftforge.net/' }
         jcenter()
         mavenCentral()
@@ -46,7 +46,7 @@ import org.objectweb.asm.ClassReader
 
 plugins {
     id 'net.minecrell.licenser' version '0.4'
-    id 'org.ajoberstar.grgit' version '3.1.1'
+    id 'org.ajoberstar.grgit' version '4.1.1'
     id 'de.undercouch.download' version '3.3.0'
     id 'com.github.ben-manes.versions' version '0.22.0'
     id 'net.nemerosa.versioning' version '2.14.0'
@@ -71,7 +71,8 @@ ext {
             repo: 'https://maven.minecraftforge.net/',
             args: ['--input', '{input}', '--output', '{output}']
     ]
-    MAGMA_VERSION = "1.12.2-" + versioning.info.commit.substring(0, 8) // Use 8 characters for the commit hash
+    // Use version from environment (set by CI), else compute from git
+    MAGMA_VERSION = System.getenv("ORG_GRADLE_PROJECT_version") ?: "1.12.2-" + versioning.info.commit.substring(0, 8)
 
 }
 
@@ -90,7 +91,7 @@ project(':clean') {
     compileJava.sourceCompatibility = compileJava.targetCompatibility = sourceCompatibility = targetCompatibility = '1.8' // Need this here so eclipse task generates correctly.
 
     repositories {
-        maven { url = 'https://nexus.c0d3m4513r.com/repository/Magma/' }
+        maven { url = 'https://repo.magmafoundation.org/releases/' }
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
         maven {
@@ -197,7 +198,7 @@ project(':forge') {
     eclipse.classpath.file.whenMerged { cls -> cls.entries.removeIf { e -> e instanceof SourceFolder && e.path.startsWith('src/') && !e.path.startsWith('src/main/') } }
 
     repositories {
-        maven { url = 'https://nexus.c0d3m4513r.com/repository/Magma/' }
+        maven { url = 'https://repo.magmafoundation.org/releases/' }
         mavenCentral()
         maven { url = 'https://maven.minecraftforge.net/' }
         maven {
@@ -713,7 +714,7 @@ project(':forge') {
     universalJar {
         archiveClassifier = 'server'
         archiveExtension = 'jar'
-        archiveBaseName = 'Magma'
+        archiveBaseName = 'magma'
         archiveVersion = MAGMA_VERSION
 
         from(extraTxts)
@@ -910,31 +911,31 @@ project(':forge') {
     publishing {
         publications {
             mavenJava(MavenPublication) {
-                artifact file("build/libs/Magma-${project.version}-server.jar").canonicalPath
+                artifact file("build/libs/magma-forge-${project.version}-server.jar").canonicalPath
 
                 pom {
-                    name = 'Magma'
+                    name = 'magma'
                     groupId = 'org.magmafoundation'
-                    artifactId = 'Magma'
+                    artifactId = 'magma'
                     description = 'Minecraft Forge Hybrid server implementing the Spigot/Bukkit API (Cauldron for 1.12)'
-                    url = 'https://git.magmafoundation.org/magmafoundation/Magma'
+                    url = 'https://github.com/magmafoundation/Magma'
                     version = MAGMA_VERSION
 
                     scm {
-                        url = 'https://git.magmafoundation.org/magmafoundation/Magma'
-                        connection = 'scm:git:git://git.magmafoundation.org/magmafoundation/Magma.git'
-                        developerConnection = 'scm:git:git@git.magmafoundation.org:2224/magmafoundation/Magma.git'
+                        url = 'https://github.com/magmafoundation/Magma'
+                        connection = 'scm:git:git://github.com/magmafoundation/Magma.git'
+                        developerConnection = 'scm:git:git@github.com:magmafoundation/Magma.git'
                     }
 
                     issueManagement {
-                        system = 'gitlab'
-                        url = 'https://git.magmafoundation.org/magmafoundation/Magma/issues'
+                        system = 'github'
+                        url = 'https://github.com/magmafoundation/Magma/issues'
                     }
 
                     licenses {
                         license {
                             name = 'LGPL 3.0'
-                            url = 'https://git.magmafoundation.org/magmafoundation/Magma/-/raw/master/LICENSE'
+                            url = 'https://raw.githubusercontent.com/magmafoundation/Magma/master/LICENSE'
                             distribution = 'repo'
                         }
                     }
@@ -949,17 +950,16 @@ project(':forge') {
             }
         }
         repositories {
-            if (System.getenv("CI_JOB_TOKEN") != null) {
+            def mavenUsername = project.findProperty("mavenUsername") ?: System.getenv("MAVEN_USER")
+            def mavenPassword = project.findProperty("mavenPassword") ?: System.getenv("MAVEN_PASSWORD")
+
+            if (mavenUsername != null && mavenPassword != null) {
                 maven {
-                    // gitlab repo
-                    name = 'MagmaFoundation'
-                    url = 'https://git.magmafoundation.org/api/v4/projects/7/packages/maven/'
-                    credentials(HttpHeaderCredentials) {
-                        name = "Private-Token"
-                        value = System.getenv("CI_JOB_TOKEN")
-                    }
-                    authentication {
-                        header(HttpHeaderAuthentication)
+                    name = 'MagmaFoundationReleases'
+                    url = 'https://repo.magmafoundation.org/releases'
+                    credentials {
+                        username = mavenUsername
+                        password = mavenPassword
                     }
                 }
             } else {

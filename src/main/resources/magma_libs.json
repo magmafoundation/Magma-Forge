@@ -68,7 +68,7 @@
     },
     {
       "name": "net.minecraft:launchwrapper:1.12",
-      "repo": "https://git.magmafoundation.org/api/v4/projects/22/packages/maven",
+      "repo": "https://repo.magmafoundation.org/releases/",
       "md5": "ae0a689b7ed72e377618933bb9742916",
       "md5_skip": true
     },

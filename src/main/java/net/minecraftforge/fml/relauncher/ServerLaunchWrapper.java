@@ -72,13 +72,14 @@ public class ServerLaunchWrapper {
 
         Dependencies.start();
 
-        if (!LAUNCH_ARGS.contains("-dau")) {
-            System.out.println("Checking for updates...");
-            MagmaUpdater magmaUpdater = new MagmaUpdater();
-            if (magmaUpdater.versionChecker() && MagmaConfig.instance.magmaAutoUpdater.getValues()) {
-                magmaUpdater.downloadJar();
-            }
-        }
+        // todo add back when we had one release
+//        if (!LAUNCH_ARGS.contains("-dau")) {
+//            System.out.println("Checking for updates...");
+//            MagmaUpdater magmaUpdater = new MagmaUpdater();
+//            if (magmaUpdater.versionChecker() && MagmaConfig.instance.magmaAutoUpdater.getValues()) {
+//                magmaUpdater.downloadJar();
+//            }
+//        }
 
         new ServerLaunchWrapper().run(args);
     }
