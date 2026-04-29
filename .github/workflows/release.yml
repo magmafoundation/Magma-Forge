@@ -59,7 +59,6 @@ jobs:
           echo "ORG_GRADLE_PROJECT_version=${MAGMA_VERSION}" >> "$GITHUB_ENV"
 
       - name: Send Discord start notification
-        if: ${{ secrets.DISCORD_WEBHOOK != '' }}
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           STATUS: started
@@ -148,7 +147,7 @@ jobs:
           body_path: release-notes.md
 
       - name: Send Discord end notification
-        if: ${{ always() && secrets.DISCORD_WEBHOOK != '' }}
+        if: ${{ always() }}
         env:
           DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
           JOB_STATUS: ${{ job.status }}
@@ -188,6 +187,8 @@ jobs:
           print(json.dumps(payload))
           PY
           curl -fsSL -H "Content-Type: application/json" -d @discord.json "$DISCORD_WEBHOOK"
+
+
 
 
 
