@@ -258,6 +258,9 @@ project(':forge') {
 
     version = MAGMA_VERSION
 
+    // Print version, generally useful to know - also appears on CI
+    System.out.println("Magma Neo version ${project.version}")
+
     patcher {
         exc = file("$rootDir/src/main/resources/forge.exc")
         parent = project(':clean')

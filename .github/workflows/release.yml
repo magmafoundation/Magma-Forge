@@ -15,7 +15,7 @@ jobs:
     with:
       java: 8
       pre_gradle_tasks: setup
-      gradle_tasks: publish
+      gradle_tasks: build publish
       version_labels: -beta, -stable
 
     # We only publish the main repository. This way we avoid publishing Kits
